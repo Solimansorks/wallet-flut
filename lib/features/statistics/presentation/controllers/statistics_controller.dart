@@ -56,7 +56,7 @@ class LedgerTrend {
 
 // Watch transactions and compute dashboard statistics
 final dashboardStatsProvider = Provider<DashboardStats>((ref) {
-  final txs = ref.watch(expenseControllerProvider).transactions;
+  final txs = ref.watch(expenseControllerProvider).allTransactions;
   final loans = ref.watch(loanControllerProvider).loans;
   final storage = ref.watch(storageServiceProvider);
   final initialBalance = storage.getInitialBalance();

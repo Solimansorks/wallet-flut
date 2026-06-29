@@ -4,6 +4,7 @@ import 'package:personal_wallet/features/expenses/domain/models/transaction.dart
 
 class TransactionListState {
   final List<Transaction> transactions;
+  final List<Transaction> allTransactions;
   final bool isLoading;
   final String searchQuery;
   final String dateFilter; // today, yesterday, last_7_days, this_month, this_year, custom
@@ -17,9 +18,10 @@ class TransactionListState {
 
   TransactionListState({
     this.transactions = const [],
+    this.allTransactions = const [],
     this.isLoading = false,
     this.searchQuery = '',
-    this.dateFilter = 'this_month',
+    this.dateFilter = 'today',
     this.customStartDate,
     this.customEndDate,
     this.sortBy = 'newest',
@@ -31,6 +33,7 @@ class TransactionListState {
 
   TransactionListState copyWith({
     List<Transaction>? transactions,
+    List<Transaction>? allTransactions,
     bool? isLoading,
     String? searchQuery,
     String? dateFilter,
@@ -44,6 +47,7 @@ class TransactionListState {
   }) {
     return TransactionListState(
       transactions: transactions ?? this.transactions,
+      allTransactions: allTransactions ?? this.allTransactions,
       isLoading: isLoading ?? this.isLoading,
       searchQuery: searchQuery ?? this.searchQuery,
       dateFilter: dateFilter ?? this.dateFilter,
@@ -69,6 +73,11 @@ class TransactionController extends StateNotifier<TransactionListState> {
     state = state.copyWith(isLoading: true);
     try {
       final db = _ref.read(databaseServiceProvider);
+      
+      // Load all transactions for global balances and stats calculation
+      final allTxs = await db.getExpenses();
+
+      // Load filtered transactions for the main list
       final txs = await db.getExpenses(
         searchQuery: state.searchQuery,
         filterCategory: state.filterCategory == 'All' ? null : state.filterCategory,
@@ -84,6 +93,7 @@ class TransactionController extends StateNotifier<TransactionListState> {
 
       state = state.copyWith(
         transactions: paginatedTxs,
+        allTransactions: allTxs,
         hasMore: hasMore,
         isLoading: false,
       );

@@ -422,42 +422,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         }
                         
                         final wallet = budgetState.wallets[index - 1];
-                        final loans = ref.watch(loanControllerProvider).loans;
-                        final walletTransactions = txState.transactions.where((t) => t.walletId == wallet.id || t.toWalletId == wallet.id);
-                        double currentWalletBalance = wallet.initialBalance;
-
-                        for (var t in walletTransactions) {
-                          if (t.type == 'deposit') {
-                            if (t.walletId == wallet.id) {
-                              currentWalletBalance += t.amount;
-                            }
-                          } else if (t.type == 'expense') {
-                            if (t.walletId == wallet.id) {
-                              currentWalletBalance -= t.amount;
-                            }
-                          } else if (t.type == 'transfer') {
-                            if (t.walletId == wallet.id) {
-                              currentWalletBalance -= t.amount;
-                            }
-                            if (t.toWalletId == wallet.id) {
-                              currentWalletBalance += t.amount;
-                            }
-                          } else if (t.type == 'loan_repayment') {
-                            final l = loans.where((item) => item.id == t.loanId);
-                            if (l.isNotEmpty) {
-                              final parentLoan = l.first;
-                              if (parentLoan.type == 'lent') {
-                                if (t.walletId == wallet.id) {
-                                  currentWalletBalance += t.amount;
-                                }
-                              } else {
-                                if (t.walletId == wallet.id) {
-                                  currentWalletBalance -= t.amount;
-                                }
-                              }
-                            }
-                          }
-                        }
+                        final walletBalances = ref.watch(walletBalancesProvider);
+                        final currentWalletBalance = walletBalances[wallet.id] ?? wallet.initialBalance;
 
                          final isSelected = _filterWalletId == wallet.id;
                          return GestureDetector(

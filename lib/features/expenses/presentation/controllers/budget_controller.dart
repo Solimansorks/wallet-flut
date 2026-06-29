@@ -4,6 +4,8 @@ import 'package:personal_wallet/features/expenses/domain/models/wallet.dart';
 import 'package:personal_wallet/features/expenses/domain/models/budget.dart';
 import 'package:personal_wallet/features/expenses/domain/models/savings_goal.dart';
 import 'package:personal_wallet/features/expenses/domain/models/custom_category.dart';
+import 'package:personal_wallet/features/expenses/presentation/controllers/expense_controller.dart';
+import 'package:personal_wallet/features/expenses/presentation/controllers/loan_controller.dart';
 
 class BudgetState {
   final List<Wallet> wallets;
@@ -159,4 +161,40 @@ class BudgetController extends StateNotifier<BudgetState> {
 
 final budgetControllerProvider = StateNotifierProvider<BudgetController, BudgetState>((ref) {
   return BudgetController(ref);
+});
+
+final walletBalancesProvider = Provider<Map<int, double>>((ref) {
+  final allTxs = ref.watch(expenseControllerProvider).allTransactions;
+  final wallets = ref.watch(budgetControllerProvider).wallets;
+  final loans = ref.watch(loanControllerProvider).loans;
+  final storage = ref.watch(storageServiceProvider);
+  final initialBalance = storage.getInitialBalance();
+
+  final Map<int, double> balances = {};
+  for (var wallet in wallets) {
+    double bal = wallet.initialBalance;
+    final walletTxs = allTxs.where((t) => t.walletId == wallet.id || t.toWalletId == wallet.id);
+    for (var t in walletTxs) {
+      if (t.type == 'deposit') {
+        if (t.walletId == wallet.id) bal += t.amount;
+      } else if (t.type == 'expense') {
+        if (t.walletId == wallet.id) bal -= t.amount;
+      } else if (t.type == 'transfer') {
+        if (t.walletId == wallet.id) bal -= t.amount;
+        if (t.toWalletId == wallet.id) bal += t.amount;
+      } else if (t.type == 'loan_repayment') {
+        final l = loans.where((item) => item.id == t.loanId);
+        if (l.isNotEmpty) {
+          final parentLoan = l.first;
+          if (parentLoan.type == 'lent') {
+            if (t.walletId == wallet.id) bal += t.amount;
+          } else {
+            if (t.walletId == wallet.id) bal -= t.amount;
+          }
+        }
+      }
+    }
+    balances[wallet.id] = bal;
+  }
+  return balances;
 });
