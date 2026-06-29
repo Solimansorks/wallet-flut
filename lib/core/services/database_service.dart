@@ -7,6 +7,7 @@ import 'package:personal_wallet/features/expenses/domain/models/budget.dart';
 import 'package:personal_wallet/features/expenses/domain/models/savings_goal.dart';
 import 'package:personal_wallet/features/expenses/domain/models/custom_category.dart';
 import 'package:personal_wallet/features/expenses/domain/models/loan.dart';
+import 'package:personal_wallet/features/expenses/domain/models/commitment.dart';
 
 class DatabaseService {
   Isar? _isar;
@@ -38,7 +39,8 @@ class DatabaseService {
         BudgetSchema,
         SavingsGoalSchema,
         CustomCategorySchema,
-        LoanSchema
+        LoanSchema,
+        CommitmentSchema
       ],
       directory: dir.path,
     );
@@ -419,6 +421,7 @@ class DatabaseService {
       _webMockSavingsGoals.clear();
       _webMockCustomCategories.clear();
       _webMockLoans.clear();
+      _webMockCommitments.clear();
       return;
     }
     await _isar!.writeTxn(() async {
@@ -428,6 +431,7 @@ class DatabaseService {
       await _isar!.savingsGoals.clear();
       await _isar!.customCategorys.clear();
       await _isar!.loans.clear();
+      await _isar!.commitments.clear();
     });
   }
 
@@ -440,6 +444,45 @@ class DatabaseService {
     }
     await _isar!.writeTxn(() async {
       await _isar!.transactions.putAll(transactions);
+    });
+  }
+
+  // Commitments
+  final List<Commitment> _webMockCommitments = [];
+  int _webCommitmentIdCounter = 1;
+
+  Future<List<Commitment>> getCommitments() async {
+    if (kIsWeb) {
+      return _webMockCommitments;
+    }
+    return await _isar!.commitments.where().findAll();
+  }
+
+  Future<void> saveCommitment(Commitment commitment) async {
+    if (kIsWeb) {
+      if (commitment.id == Isar.autoIncrement || commitment.id == 0) {
+        commitment.id = _webCommitmentIdCounter++;
+        _webMockCommitments.add(commitment);
+      } else {
+        final index = _webMockCommitments.indexWhere((c) => c.id == commitment.id);
+        if (index != -1) {
+          _webMockCommitments[index] = commitment;
+        }
+      }
+      return;
+    }
+    await _isar!.writeTxn(() async {
+      await _isar!.commitments.put(commitment);
+    });
+  }
+
+  Future<void> deleteCommitment(int id) async {
+    if (kIsWeb) {
+      _webMockCommitments.removeWhere((c) => c.id == id);
+      return;
+    }
+    await _isar!.writeTxn(() async {
+      await _isar!.commitments.delete(id);
     });
   }
 }

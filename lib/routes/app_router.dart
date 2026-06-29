@@ -12,6 +12,7 @@ import 'package:personal_wallet/features/expenses/presentation/screens/loans_scr
 import 'package:personal_wallet/features/expenses/presentation/screens/add_loan_screen.dart';
 import 'package:personal_wallet/features/expenses/presentation/screens/loan_details_screen.dart';
 import 'package:personal_wallet/features/expenses/presentation/screens/financial_contacts_screen.dart';
+import 'package:personal_wallet/features/expenses/presentation/screens/commitments_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -74,6 +75,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/financial-contacts',
         builder: (context, state) => const FinancialContactsScreen(),
+      ),
+      GoRoute(
+        path: '/commitments',
+        builder: (context, state) => const CommitmentsScreen(),
       ),
     ],
   );

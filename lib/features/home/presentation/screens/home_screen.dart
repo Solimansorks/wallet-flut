@@ -341,6 +341,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             tooltip: l10n.translate('loans_debts'),
                           ),
                           IconButton(
+                            icon: const Icon(Icons.assignment_turned_in_outlined),
+                            onPressed: () => context.push('/commitments'),
+                            tooltip: l10n.locale.languageCode == 'ar' ? 'الالتزامات الشهرية' : 'Monthly Commitments',
+                          ),
+                          IconButton(
                             icon: const Icon(Icons.bar_chart_rounded),
                             onPressed: () => context.push('/statistics'),
                           ),
