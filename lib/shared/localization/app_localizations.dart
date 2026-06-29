@@ -93,6 +93,7 @@ class AppLocalizations {
       'transaction_saved': 'Transaction saved successfully',
       'transaction_updated': 'Transaction updated successfully',
       'load_more': 'Load More',
+      'backup_and_wipe': 'Backup & Start Fresh',
       // Advanced features keys
       'loans_debts': 'Loans & Debts',
       'money_lent': 'Money Lent',
@@ -241,6 +242,7 @@ class AppLocalizations {
       'transaction_saved': 'تم حفظ العملية بنجاح',
       'transaction_updated': 'تم تحديث العملية بنجاح',
       'load_more': 'تحميل المزيد',
+      'backup_and_wipe': 'نسخة احتياطية وبداية جديدة',
       // Advanced features keys
       'loans_debts': 'الديون والسلف',
       'money_lent': 'سلّفت حد',

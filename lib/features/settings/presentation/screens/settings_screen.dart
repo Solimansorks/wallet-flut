@@ -182,6 +182,49 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     } catch (_) {}
   }
 
+  void _backupAndWipeData(List<Transaction> txs, AppLocalizations l10n) async {
+    try {
+      final storage = ref.read(storageServiceProvider);
+      final initialBalance = storage.getInitialBalance();
+
+      final List<Map<String, dynamic>> txListJson = txs.map((t) => {
+        'id': t.id,
+        'amount': t.amount,
+        'type': t.type,
+        'category': t.category,
+        'description': t.description,
+        'date': t.date,
+        'time': t.time,
+        'createdAt': t.createdAt.toIso8601String(),
+        'updatedAt': t.updatedAt.toIso8601String(),
+      }).toList();
+
+      final Map<String, dynamic> backupJson = {
+        'transactions': txListJson,
+        'initialBalance': initialBalance,
+        'backupVersion': 1,
+      };
+
+      final jsonString = jsonEncode(backupJson);
+      final dir = await getTemporaryDirectory();
+      
+      final now = DateTime.now();
+      final dateStr = "${now.year}_${now.month.toString().padLeft(2, '0')}_${now.day.toString().padLeft(2, '0')}";
+      final file = File('${dir.path}/wallet_backup_$dateStr.json');
+      await file.writeAsString(jsonString);
+
+      final xfile = XFile(file.path);
+      await Share.shareXFiles([xfile], subject: 'Personal Wallet Backup');
+
+      // Show confirmation dialog to Wipe Data
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (mounted) {
+          _confirmWipeData(l10n);
+        }
+      });
+    } catch (_) {}
+  }
+
   void _restoreBackup(AppLocalizations l10n) async {
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -370,6 +413,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     leading: const Icon(Icons.restore_outlined, color: Colors.indigo),
                     title: Text(l10n.translate('import_data')),
                     onTap: () => _restoreBackup(l10n),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.swap_horizontal_circle_outlined, color: Colors.amber),
+                    title: Text(l10n.translate('backup_and_wipe')),
+                    onTap: () => _backupAndWipeData(txs, l10n),
                   ),
                   const Divider(height: 1),
                   ListTile(
