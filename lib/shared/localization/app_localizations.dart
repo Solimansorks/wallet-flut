@@ -90,6 +90,9 @@ class AppLocalizations {
       'type': 'Type',
       'deposit': 'Deposit',
       'expense': 'Expense',
+      'transaction_saved': 'Transaction saved successfully',
+      'transaction_updated': 'Transaction updated successfully',
+      'load_more': 'Load More',
       // Advanced features keys
       'loans_debts': 'Loans & Debts',
       'money_lent': 'Money Lent',
@@ -235,6 +238,9 @@ class AppLocalizations {
       'type': 'نوع العملية',
       'deposit': 'إيداع',
       'expense': 'مصروف',
+      'transaction_saved': 'تم حفظ العملية بنجاح',
+      'transaction_updated': 'تم تحديث العملية بنجاح',
+      'load_more': 'تحميل المزيد',
       // Advanced features keys
       'loans_debts': 'الديون والسلف',
       'money_lent': 'سلّفت حد',

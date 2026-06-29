@@ -7,11 +7,13 @@ import 'package:personal_wallet/shared/localization/app_localizations.dart';
 class ExpenseCard extends ConsumerWidget {
   final Transaction expense;
   final VoidCallback onTap;
+  final VoidCallback? onDelete;
 
   const ExpenseCard({
     Key? key,
     required this.expense,
     required this.onTap,
+    this.onDelete,
   }) : super(key: key);
 
   IconData _getCategoryIcon(String category, String type) {
@@ -150,6 +152,15 @@ class ExpenseCard extends ConsumerWidget {
                     ),
                   ],
                 ),
+                if (onDelete != null) ...[
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+                    onPressed: onDelete,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
               ],
             ),
           ),

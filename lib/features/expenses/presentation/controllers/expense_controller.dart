@@ -12,6 +12,8 @@ class TransactionListState {
   final String sortBy; // newest, oldest, highest_amount, lowest_amount, category
   final String filterCategory;
   final String filterType; // 'all', 'deposit', 'expense'
+  final int limit;
+  final bool hasMore;
 
   TransactionListState({
     this.transactions = const [],
@@ -23,6 +25,8 @@ class TransactionListState {
     this.sortBy = 'newest',
     this.filterCategory = 'All',
     this.filterType = 'all',
+    this.limit = 20,
+    this.hasMore = false,
   });
 
   TransactionListState copyWith({
@@ -35,6 +39,8 @@ class TransactionListState {
     String? sortBy,
     String? filterCategory,
     String? filterType,
+    int? limit,
+    bool? hasMore,
   }) {
     return TransactionListState(
       transactions: transactions ?? this.transactions,
@@ -46,6 +52,8 @@ class TransactionListState {
       sortBy: sortBy ?? this.sortBy,
       filterCategory: filterCategory ?? this.filterCategory,
       filterType: filterType ?? this.filterType,
+      limit: limit ?? this.limit,
+      hasMore: hasMore ?? this.hasMore,
     );
   }
 }
@@ -70,14 +78,27 @@ class TransactionController extends StateNotifier<TransactionListState> {
         customEndDate: state.customEndDate,
         sortBy: state.sortBy,
       );
-      state = state.copyWith(transactions: txs, isLoading: false);
+      
+      final paginatedTxs = txs.take(state.limit).toList();
+      final hasMore = txs.length > state.limit;
+
+      state = state.copyWith(
+        transactions: paginatedTxs,
+        hasMore: hasMore,
+        isLoading: false,
+      );
     } catch (e) {
       state = state.copyWith(isLoading: false);
     }
   }
 
+  void loadMore() {
+    state = state.copyWith(limit: state.limit + 20);
+    loadTransactions();
+  }
+
   void setSearchQuery(String query) {
-    state = state.copyWith(searchQuery: query);
+    state = state.copyWith(searchQuery: query, limit: 20);
     loadTransactions();
   }
 
@@ -86,22 +107,23 @@ class TransactionController extends StateNotifier<TransactionListState> {
       dateFilter: filter,
       customStartDate: start,
       customEndDate: end,
+      limit: 20,
     );
     loadTransactions();
   }
 
   void setSortBy(String sortBy) {
-    state = state.copyWith(sortBy: sortBy);
+    state = state.copyWith(sortBy: sortBy, limit: 20);
     loadTransactions();
   }
 
   void setFilterCategory(String category) {
-    state = state.copyWith(filterCategory: category);
+    state = state.copyWith(filterCategory: category, limit: 20);
     loadTransactions();
   }
 
   void setFilterType(String type) {
-    state = state.copyWith(filterType: type);
+    state = state.copyWith(filterType: type, limit: 20);
     loadTransactions();
   }
 

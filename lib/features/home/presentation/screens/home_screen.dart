@@ -10,6 +10,7 @@ import 'package:personal_wallet/shared/localization/app_localizations.dart';
 import 'package:personal_wallet/shared/widgets/expense_card.dart';
 import 'package:personal_wallet/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:personal_wallet/features/expenses/presentation/controllers/loan_controller.dart';
+import 'package:personal_wallet/features/expenses/domain/models/transaction.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -274,6 +275,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (_filterMaxAmount != null) {
       filteredTxs = filteredTxs.where((t) => t.amount <= _filterMaxAmount!).toList();
     }
+
+    // Group transactions by date
+    final Map<String, List<Transaction>> groupedTxs = {};
+    for (var tx in filteredTxs) {
+      groupedTxs.putIfAbsent(tx.date, () => []).add(tx);
+    }
+
+    final List<dynamic> listItems = [];
+    groupedTxs.forEach((dateStr, txList) {
+      listItems.add(dateStr); // Header
+      listItems.addAll(txList); // Transactions
+    });
 
     return Scaffold(
       body: SafeArea(
@@ -825,13 +838,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
-                            final tx = filteredTxs[index];
-                            return ExpenseCard(
-                              expense: tx,
-                              onTap: () => context.push('/transaction-details/${tx.id}'),
+                            if (index < listItems.length) {
+                              final item = listItems[index];
+                              if (item is String) {
+                                return _buildDateHeader(item, l10n, theme);
+                              }
+                              final tx = item as Transaction;
+                              return ExpenseCard(
+                                expense: tx,
+                                onTap: () => context.push('/transaction-details/${tx.id}'),
+                                onDelete: () => _confirmDeleteTransaction(context, ref, tx),
+                              );
+                            }
+                            // Render Load More Button
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 16.0),
+                              child: Center(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => ref.read(expenseControllerProvider.notifier).loadMore(),
+                                  icon: const Icon(Icons.arrow_downward_rounded),
+                                  label: Text(l10n.translate('load_more')),
+                                  style: OutlinedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                ),
+                              ),
                             );
                           },
-                          childCount: filteredTxs.length,
+                          childCount: listItems.length + (txState.hasMore ? 1 : 0),
                         ),
                       ),
                     ),
@@ -863,6 +899,83 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Text(
             hide ? '***' : amount.toStringAsFixed(0),
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'Outfit'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDateHeader(String dateStr, AppLocalizations l10n, ThemeData theme) {
+    final now = DateTime.now();
+    final todayStr = "${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}";
+    
+    final yesterday = now.subtract(const Duration(days: 1));
+    final yesterdayStr = "${yesterday.day.toString().padLeft(2, '0')}/${yesterday.month.toString().padLeft(2, '0')}/${yesterday.year}";
+    
+    String label = dateStr;
+    if (dateStr == todayStr) {
+      label = l10n.translate('today');
+    } else if (dateStr == yesterdayStr) {
+      label = l10n.translate('yesterday');
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Divider(
+              color: theme.dividerColor.withOpacity(0.5),
+              thickness: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteTransaction(BuildContext context, WidgetRef ref, Transaction tx) {
+    final l10n = ref.read(l10nProvider);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.translate('delete_confirm_title')),
+        content: Text(l10n.translate('delete_confirm_desc')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.translate('cancel')),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await ref.read(expenseControllerProvider.notifier).deleteExpense(tx.id);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(l10n.locale.languageCode == 'ar' ? 'تم حذف العملية بنجاح' : 'Transaction deleted successfully'),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+              }
+            },
+            child: Text(l10n.translate('delete'), style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
