@@ -795,6 +795,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
           ),
         ),
       ),
+    );
   }
 
   void _showAddCustomCategoryDialog(AppLocalizations l10n) {

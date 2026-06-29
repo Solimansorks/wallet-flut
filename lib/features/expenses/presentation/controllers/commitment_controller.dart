@@ -91,9 +91,11 @@ class CommitmentController extends StateNotifier<CommitmentState> {
         ..location = ''
         ..notes = 'تم توليده تلقائياً من الالتزامات الشهرية'
         ..receiptImagePath = ''
-        ..isRecurring = false
         ..toWalletId = 0
         ..loanId = 0
+        ..day = now.day
+        ..month = now.month
+        ..year = now.year
         ..dayOfWeek = dayOfWeek
         ..uuid = 'commitment_${commitment.id}_${now.year}_${now.month}'
         ..createdAt = now
