@@ -15,7 +15,7 @@ extension GetTransactionCollection on Isar {
 
 const TransactionSchema = CollectionSchema(
   name: r'Transaction',
-  id: 5320225499417955328,
+  id: 5320225499417954855,
   properties: {
     r'amount': PropertySchema(
       id: 0,
@@ -125,7 +125,7 @@ const TransactionSchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'amount': IndexSchema(
-      id: 3252599345080253440,
+      id: 3252599345080253594,
       name: r'amount',
       unique: false,
       replace: false,
@@ -138,7 +138,7 @@ const TransactionSchema = CollectionSchema(
       ],
     ),
     r'type': IndexSchema(
-      id: 5117122708147081216,
+      id: 5117122708147080838,
       name: r'type',
       unique: false,
       replace: false,
@@ -151,7 +151,7 @@ const TransactionSchema = CollectionSchema(
       ],
     ),
     r'category': IndexSchema(
-      id: -7560358558326324224,
+      id: -7560358558326323820,
       name: r'category',
       unique: false,
       replace: false,
@@ -164,7 +164,7 @@ const TransactionSchema = CollectionSchema(
       ],
     ),
     r'date': IndexSchema(
-      id: -7552997827385218048,
+      id: -7552997827385218417,
       name: r'date',
       unique: false,
       replace: false,
@@ -177,7 +177,7 @@ const TransactionSchema = CollectionSchema(
       ],
     ),
     r'paymentMethod': IndexSchema(
-      id: 8757296919228604416,
+      id: 8757296919228604195,
       name: r'paymentMethod',
       unique: false,
       replace: false,
@@ -190,7 +190,7 @@ const TransactionSchema = CollectionSchema(
       ],
     ),
     r'uuid': IndexSchema(
-      id: 2134397340427725056,
+      id: 2134397340427724972,
       name: r'uuid',
       unique: false,
       replace: false,
@@ -203,7 +203,7 @@ const TransactionSchema = CollectionSchema(
       ],
     ),
     r'walletId': IndexSchema(
-      id: -1783113319798776320,
+      id: -1783113319798776304,
       name: r'walletId',
       unique: false,
       replace: false,
@@ -216,7 +216,7 @@ const TransactionSchema = CollectionSchema(
       ],
     ),
     r'toWalletId': IndexSchema(
-      id: -5598403503297817600,
+      id: -5598403503297817532,
       name: r'toWalletId',
       unique: false,
       replace: false,
@@ -229,7 +229,7 @@ const TransactionSchema = CollectionSchema(
       ],
     ),
     r'loanId': IndexSchema(
-      id: -2433238998242736640,
+      id: -2433238998242736672,
       name: r'loanId',
       unique: false,
       replace: false,

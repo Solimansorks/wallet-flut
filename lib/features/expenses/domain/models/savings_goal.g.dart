@@ -15,7 +15,7 @@ extension GetSavingsGoalCollection on Isar {
 
 const SavingsGoalSchema = CollectionSchema(
   name: r'SavingsGoal',
-  id: 2336982407974705152,
+  id: 2336982407974704875,
   properties: {
     r'savedAmount': PropertySchema(
       id: 0,
@@ -40,7 +40,7 @@ const SavingsGoalSchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'title': IndexSchema(
-      id: -7636685945352118272,
+      id: -7636685945352118059,
       name: r'title',
       unique: true,
       replace: true,

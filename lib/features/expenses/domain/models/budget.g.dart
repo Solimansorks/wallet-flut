@@ -15,7 +15,7 @@ extension GetBudgetCollection on Isar {
 
 const BudgetSchema = CollectionSchema(
   name: r'Budget',
-  id: -3383598594604670464,
+  id: -3383598594604670326,
   properties: {
     r'category': PropertySchema(
       id: 0,
@@ -35,7 +35,7 @@ const BudgetSchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'category': IndexSchema(
-      id: -7560358558326324224,
+      id: -7560358558326323820,
       name: r'category',
       unique: true,
       replace: true,

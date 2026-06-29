@@ -15,7 +15,7 @@ extension GetWalletCollection on Isar {
 
 const WalletSchema = CollectionSchema(
   name: r'Wallet',
-  id: 8666280453615945728,
+  id: 8666280453615945738,
   properties: {
     r'colorValue': PropertySchema(
       id: 0,
@@ -45,7 +45,7 @@ const WalletSchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'name': IndexSchema(
-      id: 879695947855722496,
+      id: 879695947855722453,
       name: r'name',
       unique: true,
       replace: true,

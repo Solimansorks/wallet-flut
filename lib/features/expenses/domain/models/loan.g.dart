@@ -15,7 +15,7 @@ extension GetLoanCollection on Isar {
 
 const LoanSchema = CollectionSchema(
   name: r'Loan',
-  id: 3165146227223573504,
+  id: 3165146227223573679,
   properties: {
     r'createdAt': PropertySchema(
       id: 0,
@@ -80,7 +80,7 @@ const LoanSchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'personName': IndexSchema(
-      id: 1248926044822021376,
+      id: 1248926044822021493,
       name: r'personName',
       unique: false,
       replace: false,
@@ -93,7 +93,7 @@ const LoanSchema = CollectionSchema(
       ],
     ),
     r'type': IndexSchema(
-      id: 5117122708147081216,
+      id: 5117122708147080838,
       name: r'type',
       unique: false,
       replace: false,
@@ -106,7 +106,7 @@ const LoanSchema = CollectionSchema(
       ],
     ),
     r'walletId': IndexSchema(
-      id: -1783113319798776320,
+      id: -1783113319798776304,
       name: r'walletId',
       unique: false,
       replace: false,

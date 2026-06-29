@@ -15,7 +15,7 @@ extension GetCustomCategoryCollection on Isar {
 
 const CustomCategorySchema = CollectionSchema(
   name: r'CustomCategory',
-  id: -9149177051914170368,
+  id: -9149177051914171202,
   properties: {
     r'name': PropertySchema(
       id: 0,
@@ -35,7 +35,7 @@ const CustomCategorySchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'name': IndexSchema(
-      id: 879695947855722496,
+      id: 879695947855722453,
       name: r'name',
       unique: true,
       replace: true,
