@@ -43,10 +43,10 @@ class Transaction {
 
   // Advanced Ledger Fields
   @Index()
-  late int toWalletId; // Destination wallet id (for transfers)
+  int toWalletId = 0; // Destination wallet id (for transfers)
 
   @Index()
-  late int loanId; // Linked loan ID (for loan repayments)
+  int loanId = 0; // Linked loan ID (for loan repayments)
 
   late int day;
   late int month;
