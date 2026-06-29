@@ -34,6 +34,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
   String _selectedCategory = 'Food';
   String _selectedPaymentMethod = 'Cash';
   int _selectedWalletId = 1;
+  int _selectedToWalletId = 2;
   String _receiptPath = '';
   bool _isEdit = false;
   bool _isLoading = false;
@@ -260,6 +261,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
         _selectedCategory = tx.category;
         _selectedPaymentMethod = tx.paymentMethod.isNotEmpty ? tx.paymentMethod : 'Cash';
         _selectedWalletId = tx.walletId != 0 ? tx.walletId : 1;
+        _selectedToWalletId = tx.toWalletId != 0 ? tx.toWalletId : 2;
         _locationController.text = tx.location;
         _notesController.text = tx.notes;
         _receiptPath = tx.receiptImagePath;
@@ -298,7 +300,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
       final notes = _notesController.text;
       final l10n = ref.read(l10nProvider);
 
-      if (_selectedType == 'expense' && !_isEdit) {
+      if ((_selectedType == 'expense' || _selectedType == 'transfer') && !_isEdit) {
         final walletBalances = ref.read(walletBalancesProvider);
         final currentBalance = walletBalances[_selectedWalletId] ?? 0.0;
         
@@ -310,8 +312,8 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
               title: Text(l10n.locale.languageCode == 'ar' ? 'تحذير: رصيد غير كافٍ' : 'Warning: Low Balance'),
               content: Text(
                 l10n.locale.languageCode == 'ar'
-                    ? 'المبلغ المراد خصمه ($amount ج.م) أكبر من الرصيد المتوفر في المحفظة ($currentBalance ج.م). هل تريد الاستمرار بالخصم ورؤية رصيد سالب؟'
-                    : 'The amount to be deducted ($amount EGP) is greater than the available balance in the wallet ($currentBalance EGP). Do you want to proceed and allow a negative balance?',
+                    ? 'المبلغ المراد تحويله ($amount ج.م) أكبر من الرصيد المتوفر في المحفظة المصدر ($currentBalance ج.م). هل تريد الاستمرار بالخصم ورؤية رصيد سالب؟'
+                    : 'The amount to be transferred ($amount EGP) is greater than the available balance in the source wallet ($currentBalance EGP). Do you want to proceed and allow a negative balance?',
               ),
               actions: [
                 TextButton(
@@ -335,8 +337,8 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
               title: Text(l10n.locale.languageCode == 'ar' ? 'تنبيه: اقتراب الحد الأدنى' : 'Alert: Approaching Limit'),
               content: Text(
                 l10n.locale.languageCode == 'ar'
-                    ? 'رصيد المحفظة سيقترب من الصفر (سيتبقى أقل من 15% من رصيدك الحالي) بعد هذه العملية. هل ترغب في إتمامها؟'
-                    : 'The wallet balance will drop close to zero (less than 15% remaining) after this transaction. Do you want to proceed?',
+                    ? 'رصيد المحفظة المصدر سيقترب من الصفر (سيتبقى أقل من 15% من رصيدك الحالي) بعد هذه العملية. هل ترغب في إتمامها؟'
+                    : 'The source wallet balance will drop close to zero (less than 15% remaining) after this transaction. Do you want to proceed?',
               ),
               actions: [
                 TextButton(
@@ -355,6 +357,20 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
         }
       }
 
+      if (_selectedType == 'transfer' && _selectedWalletId == _selectedToWalletId) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              l10n.locale.languageCode == 'ar'
+                  ? 'المحفظة المرسلة والمستقبلة متطابقتان! يرجى اختيار محفظة مختلفة.'
+                  : 'Source and destination wallets cannot be the same!',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
       setState(() {
         _isLoading = true;
       });
@@ -368,12 +384,17 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
         if (tx != null) {
           tx.amount = amount;
           tx.type = _selectedType;
-          tx.category = _selectedCategory;
-          tx.description = description;
+          tx.category = _selectedType == 'transfer' ? 'Transfer' : _selectedCategory;
+          tx.description = description.isNotEmpty 
+              ? description 
+              : (_selectedType == 'transfer' 
+                  ? (l10n.locale.languageCode == 'ar' ? 'تحويل بين المحافظ' : 'Transfer Between Wallets')
+                  : description);
           tx.location = location;
           tx.notes = notes;
-          tx.paymentMethod = _selectedPaymentMethod;
+          tx.paymentMethod = _selectedType == 'transfer' ? 'Transfer' : _selectedPaymentMethod;
           tx.walletId = _selectedWalletId;
+          tx.toWalletId = _selectedType == 'transfer' ? _selectedToWalletId : 0;
           tx.receiptImagePath = _receiptPath;
           tx.updatedAt = DateTime.now();
           await db.saveExpense(tx);
@@ -388,19 +409,24 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
         hour = hour % 12;
         if (hour == 0) hour = 12;
         final timeStr = "${hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')} $ampm";
-
+ 
         final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
         final dayOfWeek = days[now.weekday - 1];
-
+ 
         final transaction = Transaction()
           ..amount = amount
           ..type = _selectedType
-          ..category = _selectedCategory
-          ..description = description
+          ..category = _selectedType == 'transfer' ? 'Transfer' : _selectedCategory
+          ..description = description.isNotEmpty 
+              ? description 
+              : (_selectedType == 'transfer' 
+                  ? (l10n.locale.languageCode == 'ar' ? 'تحويل بين المحافظ' : 'Transfer Between Wallets')
+                  : description)
           ..location = location
           ..notes = notes
-          ..paymentMethod = _selectedPaymentMethod
+          ..paymentMethod = _selectedType == 'transfer' ? 'Transfer' : _selectedPaymentMethod
           ..walletId = _selectedWalletId
+          ..toWalletId = _selectedType == 'transfer' ? _selectedToWalletId : 0
           ..receiptImagePath = _receiptPath
           ..date = dateStr
           ..time = timeStr
@@ -411,7 +437,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
           ..uuid = UniqueKey().toString()
           ..createdAt = now
           ..updatedAt = now;
-
+ 
         await ref.read(databaseServiceProvider).saveExpense(transaction);
         await controller.loadTransactions();
       }
@@ -439,7 +465,14 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
     final l10n = ref.watch(l10nProvider);
     final budgetState = ref.watch(budgetControllerProvider);
 
-    final categories = _selectedType == 'deposit' ? _depositCategories : _expenseCategories;
+    final customCats = budgetState.customCategories
+        .where((c) => c.type == _selectedType)
+        .map((c) => c.name)
+        .toList();
+    final categories = [
+      ...(_selectedType == 'deposit' ? _depositCategories : _expenseCategories),
+      ...customCats,
+    ];
 
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -462,14 +495,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
                   children: [
                     Expanded(
                       child: ChoiceChip(
-                        label: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.add_circle_outline_rounded, size: 18),
-                            const SizedBox(width: 6),
-                            Text(l10n.translate('deposit')),
-                          ],
-                        ),
+                        label: Text(l10n.translate('deposit')),
                         selected: _selectedType == 'deposit',
                         onSelected: (selected) {
                           if (selected) {
@@ -481,23 +507,31 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
                         },
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: ChoiceChip(
-                        label: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.remove_circle_outline_rounded, size: 18),
-                            const SizedBox(width: 6),
-                            Text(l10n.translate('expense')),
-                          ],
-                        ),
+                        label: Text(l10n.translate('expense')),
                         selected: _selectedType == 'expense',
                         onSelected: (selected) {
                           if (selected) {
                             setState(() {
                               _selectedType = 'expense';
                               _selectedCategory = _expenseCategories.first;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ChoiceChip(
+                        label: Text(l10n.locale.languageCode == 'ar' ? 'تحويل' : 'Transfer'),
+                        selected: _selectedType == 'transfer',
+                        onSelected: (selected) {
+                          if (selected) {
+                            setState(() {
+                              _selectedType = 'transfer';
+                              _selectedCategory = 'Transfer';
                             });
                           }
                         },
@@ -574,7 +608,12 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
                 const SizedBox(height: 20),
 
                 // Wallet Selection dropdown
-                Text(l10n.translate('wallet_name'), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                Text(
+                  _selectedType == 'transfer'
+                      ? (l10n.locale.languageCode == 'ar' ? 'من محفظة (المصدر)' : 'From Wallet (Source)')
+                      : l10n.translate('wallet_name'),
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<int>(
                   value: budgetState.wallets.any((w) => w.id == _selectedWalletId) ? _selectedWalletId : (budgetState.wallets.isNotEmpty ? budgetState.wallets.first.id : 1),
@@ -592,48 +631,94 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
                 ),
+                
+                if (_selectedType == 'transfer') ...[
+                  const SizedBox(height: 20),
+                  Text(
+                    l10n.locale.languageCode == 'ar' ? 'إلى محفظة (المستلم)' : 'To Wallet (Destination)',
+                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<int>(
+                    value: budgetState.wallets.any((w) => w.id == _selectedToWalletId) ? _selectedToWalletId : (budgetState.wallets.length > 1 ? budgetState.wallets[1].id : 2),
+                    items: budgetState.wallets.map((w) {
+                      return DropdownMenuItem<int>(
+                        value: w.id,
+                        child: Text(w.name),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) setState(() => _selectedToWalletId = val);
+                    },
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 20),
 
-                // Category selection dropdown
-                Text(l10n.translate('category'), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  value: categories.contains(_selectedCategory) ? _selectedCategory : categories.first,
-                  items: categories.map((cat) {
-                    return DropdownMenuItem<String>(
-                      value: cat,
-                      child: Text(l10n.getCategoryTranslation(cat)),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) setState(() => _selectedCategory = value);
-                  },
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                if (_selectedType != 'transfer') ...[
+                  // Category selection dropdown
+                  Text(l10n.translate('category'), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: categories.contains(_selectedCategory) ? _selectedCategory : categories.first,
+                    items: [
+                      ...categories.map((cat) {
+                        return DropdownMenuItem<String>(
+                          value: cat,
+                          child: Text(l10n.getCategoryTranslation(cat)),
+                        );
+                      }),
+                      DropdownMenuItem<String>(
+                        value: 'ADD_CUSTOM',
+                        child: Row(
+                          children: [
+                            Icon(Icons.add_circle_outline_rounded, color: theme.colorScheme.primary, size: 18),
+                            const SizedBox(width: 8),
+                            Text(
+                              l10n.locale.languageCode == 'ar' ? 'إضافة تصنيف مخصص...' : 'Add Custom Category...',
+                              style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value == 'ADD_CUSTOM') {
+                        _showAddCustomCategoryDialog(l10n);
+                      } else if (value != null) {
+                        setState(() => _selectedCategory = value);
+                      }
+                    },
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-                // Payment Method dropdown
-                Text(l10n.translate('payment_method'), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  value: _selectedPaymentMethod,
-                  items: _paymentMethods.map((m) {
-                    return DropdownMenuItem<String>(
-                      value: m,
-                      child: Text(l10n.locale.languageCode == 'ar' ? (m == 'Cash' ? 'كاش' : m) : m),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) setState(() => _selectedPaymentMethod = value);
-                  },
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  // Payment Method dropdown
+                  Text(l10n.translate('payment_method'), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    value: _selectedPaymentMethod,
+                    items: _paymentMethods.map((m) {
+                      return DropdownMenuItem<String>(
+                        value: m,
+                        child: Text(l10n.locale.languageCode == 'ar' ? (m == 'Cash' ? 'كاش' : m) : m),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) setState(() => _selectedPaymentMethod = value);
+                    },
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    ),
                   ),
-                ),
+                ],
                 const SizedBox(height: 20),
 
                 // Location Field
@@ -691,6 +776,43 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
           ),
         ),
       ),
+  }
+
+  void _showAddCustomCategoryDialog(AppLocalizations l10n) {
+    final nameCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(l10n.locale.languageCode == 'ar' ? 'إضافة تصنيف مخصص جديد' : 'Add New Custom Category'),
+          content: CustomTextField(
+            controller: nameCtrl,
+            labelText: l10n.locale.languageCode == 'ar' ? 'اسم التصنيف' : 'Category Name',
+            hintText: 'e.g. Car',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.translate('cancel')),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final name = nameCtrl.text.trim();
+                if (name.isNotEmpty) {
+                  Navigator.pop(context);
+                  await ref.read(budgetControllerProvider.notifier).addCustomCategory(name, _selectedType);
+                  setState(() {
+                    _selectedCategory = name;
+                  });
+                }
+              },
+              style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              child: Text(l10n.locale.languageCode == 'ar' ? 'إضافة' : 'Add'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
