@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
@@ -36,6 +37,158 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
   String _receiptPath = '';
   bool _isEdit = false;
   bool _isLoading = false;
+
+  void _handleClipboardParse(AppLocalizations l10n) {
+    final textController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Icon(Icons.auto_awesome_rounded, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(l10n.locale.languageCode == 'ar' ? 'تحليل الرسالة الذكي' : 'Smart Message Parser'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.locale.languageCode == 'ar'
+                    ? 'الصق هنا نص رسالة التحويل أو فودافون كاش أو إنستاباي وسنقوم بملء البيانات بالكامل تلقائياً:'
+                    : 'Paste the transaction message text here (Instapay, Bank SMS, or Vodafone Cash):',
+                style: const TextStyle(fontSize: 12),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: textController,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: l10n.locale.languageCode == 'ar'
+                      ? 'مثال: تم تحويل 500.00 ج.م إلى رقم...'
+                      : 'e.g., You received 500 EGP from...',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.translate('cancel')),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final message = textController.text.trim();
+                Navigator.pop(context);
+                if (message.isNotEmpty) {
+                  _parseMessage(message, l10n);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: Text(l10n.locale.languageCode == 'ar' ? 'تحليل' : 'Parse'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _parseMessage(String text, AppLocalizations l10n) {
+    double? parsedAmount;
+    String parsedType = 'expense'; // default to expense
+    String parsedPaymentMethod = _selectedPaymentMethod;
+    
+    // 1. Parse amount: Search for digits, e.g. 500, 1250.50, followed/preceded by EGP, ج.م, جنيه
+    final regEx = RegExp(r'(\d+[\.,]?\d*)');
+    final matches = regEx.allMatches(text);
+    if (matches.isNotEmpty) {
+      for (var match in matches) {
+        final val = double.tryParse(match.group(0)!.replaceAll(',', ''));
+        if (val != null && val > 0) {
+          parsedAmount = val;
+          break;
+        }
+      }
+    }
+    
+    // 2. Parse type:
+    // If it contains "استقبال", "استلام", "إيداع", "تحويل إليك", "وارد", "received", "deposit", "credited" -> deposit
+    final lowerText = text.toLowerCase();
+    if (text.contains('استلام') || 
+        text.contains('استقبال') || 
+        text.contains('إيداع') || 
+        text.contains('وارد') ||
+        text.contains('إليك') ||
+        lowerText.contains('received') || 
+        lowerText.contains('deposit') || 
+        lowerText.contains('credited') || 
+        lowerText.contains('added')) {
+      parsedType = 'deposit';
+    } else if (text.contains('تحويل') || 
+               text.contains('سحب') || 
+               text.contains('خصم') || 
+               text.contains('دفع') || 
+               text.contains('شراء') || 
+               lowerText.contains('sent') || 
+               lowerText.contains('paid') || 
+               lowerText.contains('withdrawn') || 
+               lowerText.contains('debited') || 
+               lowerText.contains('transfer')) {
+      parsedType = 'expense';
+    }
+
+    // 3. Parse payment method:
+    if (text.contains('فودافون') || lowerText.contains('vodafone') || lowerText.contains('vf')) {
+      parsedPaymentMethod = 'Vodafone Cash';
+    } else if (text.contains('إنستاباي') || lowerText.contains('instapay') || lowerText.contains('insta')) {
+      parsedPaymentMethod = 'Instapay';
+    } else if (text.contains('بنك') || lowerText.contains('bank')) {
+      parsedPaymentMethod = 'Bank';
+    }
+
+    if (parsedAmount != null) {
+      setState(() {
+        _amountController.text = parsedAmount!.toStringAsFixed(2);
+        _selectedType = parsedType;
+        _selectedPaymentMethod = parsedPaymentMethod;
+        
+        final categories = parsedType == 'deposit' ? _depositCategories : _expenseCategories;
+        _selectedCategory = categories.first;
+        
+        _descriptionController.text = l10n.locale.languageCode == 'ar'
+            ? 'تحويل ذكي تلقائي'
+            : 'Smart Auto Parse';
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.locale.languageCode == 'ar' 
+                ? 'تم تحليل الرسالة وتعبئة البيانات بنجاح!' 
+                : 'Message parsed and fields populated successfully!',
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.locale.languageCode == 'ar' 
+                ? 'لم نتمكن من العثور على قيمة المبلغ في الرسالة.' 
+                : 'Could not detect amount value in the message.',
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
 
   final List<String> _expenseCategories = [
     'Food',
@@ -295,7 +448,57 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                // Smart Parser Card
+                if (!_isEdit) ...[
+                  Card(
+                    color: theme.colorScheme.primary.withOpacity(0.08),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: theme.colorScheme.primary.withOpacity(0.15)),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.auto_awesome_rounded, color: theme.colorScheme.primary, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                l10n.locale.languageCode == 'ar' ? 'قارئ الرسائل والتحويلات الذكي' : 'Smart SMS/Transfer Parser',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  l10n.locale.languageCode == 'ar'
+                                      ? 'الصق رسالة فودافون كاش أو إنستاباي لملء البيانات تلقائياً'
+                                      : 'Paste Vodafone Cash or Instapay message to fill fields',
+                                  style: TextStyle(color: theme.textTheme.bodySmall?.color?.withOpacity(0.7), fontSize: 11),
+                                ),
+                              ),
+                              ElevatedButton.icon(
+                                icon: const Icon(Icons.paste_rounded, size: 14),
+                                label: Text(l10n.locale.languageCode == 'ar' ? 'لصق وتحليل' : 'Paste & Parse'),
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                onPressed: () => _handleClipboardParse(l10n),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
 
                 // Amount
                 CustomTextField(

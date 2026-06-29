@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:personal_wallet/features/auth/presentation/controllers/auth_controller.dart';
@@ -16,6 +17,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String _enteredPin = '';
 
   void _handleNumberPress(String number) {
+    HapticFeedback.lightImpact();
     if (_enteredPin.length < 6) {
       setState(() {
         _enteredPin += number;
@@ -30,6 +32,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _handleBackspace() {
+    HapticFeedback.lightImpact();
     if (_enteredPin.isNotEmpty) {
       setState(() {
         _enteredPin = _enteredPin.substring(0, _enteredPin.length - 1);
