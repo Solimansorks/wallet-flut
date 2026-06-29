@@ -105,15 +105,34 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
     String parsedType = 'expense'; // default to expense
     String parsedPaymentMethod = _selectedPaymentMethod;
     
-    // 1. Parse amount: Search for digits, e.g. 500, 1250.50, followed/preceded by EGP, ج.م, جنيه
-    final regEx = RegExp(r'(\d+[\.,]?\d*)');
-    final matches = regEx.allMatches(text);
-    if (matches.isNotEmpty) {
-      for (var match in matches) {
-        final val = double.tryParse(match.group(0)!.replaceAll(',', ''));
+    // 1. Parse amount: Search for currency indicators first (e.g. 500 ج.م or EGP 1000)
+    final amountWithCurrencyRegEx = RegExp(
+      r'(?:EGP|ج\.م|جنيه|LE|L\.E|egp)\s*(\d+(?:[\.,]\d+)?)|(\d+(?:[\.,]\d+)?)\s*(?:ج\.م|جنيه|EGP|LE|L\.E|egp)',
+      caseSensitive: false,
+    );
+    final currencyMatch = amountWithCurrencyRegEx.firstMatch(text);
+    if (currencyMatch != null) {
+      final amountStr = currencyMatch.group(1) ?? currencyMatch.group(2);
+      if (amountStr != null) {
+        final val = double.tryParse(amountStr.replaceAll(',', ''));
         if (val != null && val > 0) {
           parsedAmount = val;
-          break;
+        }
+      }
+    }
+
+    // Fallback: If no currency indicator match, find the first positive number (ignoring long phone numbers/ids)
+    if (parsedAmount == null) {
+      final regEx = RegExp(r'(\d+(?:[\.,]\d+)?)');
+      final matches = regEx.allMatches(text);
+      for (var match in matches) {
+        final amountStr = match.group(0);
+        if (amountStr != null) {
+          final val = double.tryParse(amountStr.replaceAll(',', ''));
+          if (val != null && val > 0 && amountStr.length < 9) {
+            parsedAmount = val;
+            break;
+          }
         }
       }
     }
