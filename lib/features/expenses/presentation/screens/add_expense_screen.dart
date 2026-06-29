@@ -298,6 +298,63 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
       final notes = _notesController.text;
       final l10n = ref.read(l10nProvider);
 
+      if (_selectedType == 'expense' && !_isEdit) {
+        final walletBalances = ref.read(walletBalancesProvider);
+        final currentBalance = walletBalances[_selectedWalletId] ?? 0.0;
+        
+        if (amount > currentBalance) {
+          final proceed = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Text(l10n.locale.languageCode == 'ar' ? 'تحذير: رصيد غير كافٍ' : 'Warning: Low Balance'),
+              content: Text(
+                l10n.locale.languageCode == 'ar'
+                    ? 'المبلغ المراد خصمه ($amount ج.م) أكبر من الرصيد المتوفر في المحفظة ($currentBalance ج.م). هل تريد الاستمرار بالخصم ورؤية رصيد سالب؟'
+                    : 'The amount to be deducted ($amount EGP) is greater than the available balance in the wallet ($currentBalance EGP). Do you want to proceed and allow a negative balance?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.translate('cancel')),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  child: Text(l10n.locale.languageCode == 'ar' ? 'الاستمرار' : 'Proceed'),
+                ),
+              ],
+            ),
+          );
+          if (proceed != true) return;
+        } else if (currentBalance > 0 && (currentBalance - amount) < (currentBalance * 0.15)) {
+          final proceed = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Text(l10n.locale.languageCode == 'ar' ? 'تنبيه: اقتراب الحد الأدنى' : 'Alert: Approaching Limit'),
+              content: Text(
+                l10n.locale.languageCode == 'ar'
+                    ? 'رصيد المحفظة سيقترب من الصفر (سيتبقى أقل من 15% من رصيدك الحالي) بعد هذه العملية. هل ترغب في إتمامها؟'
+                    : 'The wallet balance will drop close to zero (less than 15% remaining) after this transaction. Do you want to proceed?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text(l10n.translate('cancel')),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  child: Text(l10n.locale.languageCode == 'ar' ? 'الاستمرار' : 'Proceed'),
+                ),
+              ],
+            ),
+          );
+          if (proceed != true) return;
+        }
+      }
+
       setState(() {
         _isLoading = true;
       });

@@ -477,6 +477,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
 
+              // Warning Banner if monthly expenses > 85% of monthly income
+              if (stats.totalDeposits > 0 && stats.totalExpenses >= (stats.totalDeposits * 0.85))
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  sliver: SliverToBoxAdapter(
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.red.withOpacity(0.25)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 24),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  l10n.locale.languageCode == 'ar'
+                                      ? 'تنبيه: اقتربت من الحد الأقصى!'
+                                      : 'Warning: Approaching Limit!',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.red),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  l10n.locale.languageCode == 'ar'
+                                      ? 'لقد استهلكت أكثر من 85% من دخلك المالي لهذا الشهر (${stats.totalExpenses.toStringAsFixed(0)} ج.م من أصل ${stats.totalDeposits.toStringAsFixed(0)} ج.م).'
+                                      : 'You have consumed more than 85% of your total income this month (${stats.totalExpenses.toStringAsFixed(0)} EGP out of ${stats.totalDeposits.toStringAsFixed(0)} EGP).',
+                                  style: TextStyle(fontSize: 11, color: isDark ? Colors.white70 : Colors.black87),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
               // Stats Row (Today / Week / Month spent)
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
