@@ -11,6 +11,7 @@ import 'package:personal_wallet/shared/widgets/expense_card.dart';
 import 'package:personal_wallet/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:personal_wallet/features/expenses/presentation/controllers/loan_controller.dart';
 import 'package:personal_wallet/features/expenses/domain/models/transaction.dart';
+import 'package:personal_wallet/features/expenses/domain/models/wallet.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -34,6 +35,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   String _filterPaymentMethod = 'all';
   double? _filterMinAmount;
   double? _filterMaxAmount;
+  int? _filterWalletId;
 
   final List<String> _expenseCategories = [
     'Food',
@@ -266,6 +268,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     // Filter transactions list locally to support advanced filter rules
     var filteredTxs = txState.transactions;
+    if (_filterWalletId != null) {
+      filteredTxs = filteredTxs.where((t) => t.walletId == _filterWalletId || t.toWalletId == _filterWalletId).toList();
+    }
     if (_filterPaymentMethod != 'all') {
       filteredTxs = filteredTxs.where((t) => t.paymentMethod == _filterPaymentMethod).toList();
     }
@@ -362,44 +367,56 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       itemBuilder: (context, index) {
                         if (index == 0) {
                           // Net Worth Wallet
-                          return Container(
-                            width: MediaQuery.of(context).size.width * 0.85,
-                            margin: const EdgeInsets.only(right: 16),
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: isDark
-                                    ? [theme.colorScheme.primary.withOpacity(0.8), theme.colorScheme.secondary.withOpacity(0.8)]
-                                    : [theme.colorScheme.primary, theme.colorScheme.primaryContainer],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
+                          final isSelected = _filterWalletId == null;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _filterWalletId = null;
+                              });
+                            },
+                            child: Container(
+                              width: MediaQuery.of(context).size.width * 0.85,
+                              margin: const EdgeInsets.only(right: 16),
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: isDark
+                                      ? [theme.colorScheme.primary.withOpacity(0.8), theme.colorScheme.secondary.withOpacity(0.8)]
+                                      : [theme.colorScheme.primary, theme.colorScheme.primaryContainer],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                  color: isSelected ? Colors.white : Colors.transparent,
+                                  width: isSelected ? 3.0 : 0.0,
+                                ),
                               ),
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  l10n.translate('net_worth'),
-                                  style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  _formatMoney(stats.currentBalance, l10n, settings.hideBalances),
-                                  style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, fontFamily: 'Outfit'),
-                                ),
-                                const Spacer(),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('💳 All Accounts', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12)),
-                                    IconButton(
-                                      icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.white),
-                                      onPressed: () => _showAddWalletDialog(l10n),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    l10n.translate('net_worth'),
+                                    style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    _formatMoney(stats.currentBalance, l10n, settings.hideBalances),
+                                    style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, fontFamily: 'Outfit'),
+                                  ),
+                                  const Spacer(),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('💳 All Accounts', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12)),
+                                      IconButton(
+                                        icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.white),
+                                        onPressed: () => _showAddWalletDialog(l10n),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           );
                         }
@@ -442,32 +459,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           }
                         }
 
-                        return Container(
-                          width: MediaQuery.of(context).size.width * 0.85,
-                          margin: const EdgeInsets.only(right: 16),
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Color(wallet.colorValue).withOpacity(isDark ? 0.3 : 0.85),
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: Colors.grey.withOpacity(0.3)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                wallet.name,
-                                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                _formatMoney(currentWalletBalance, l10n, settings.hideBalances),
-                                style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, fontFamily: 'Outfit'),
-                              ),
-                              const Spacer(),
-                              Text('Cash source', style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12)),
-                            ],
-                          ),
-                        );
+                         final isSelected = _filterWalletId == wallet.id;
+                         return GestureDetector(
+                           onTap: () {
+                             setState(() {
+                               if (_filterWalletId == wallet.id) {
+                                 _filterWalletId = null; // Toggle off
+                               } else {
+                                 _filterWalletId = wallet.id; // Filter by this wallet
+                               }
+                             });
+                           },
+                           child: Container(
+                             width: MediaQuery.of(context).size.width * 0.85,
+                             margin: const EdgeInsets.only(right: 16),
+                             padding: const EdgeInsets.all(24),
+                             decoration: BoxDecoration(
+                               color: Color(wallet.colorValue).withOpacity(isDark ? 0.3 : 0.85),
+                               borderRadius: BorderRadius.circular(24),
+                               border: Border.all(
+                                 color: isSelected ? Colors.white : Colors.grey.withOpacity(0.3),
+                                 width: isSelected ? 3.0 : 1.0,
+                               ),
+                             ),
+                             child: Column(
+                               crossAxisAlignment: CrossAxisAlignment.start,
+                               children: [
+                                 Text(
+                                   wallet.name,
+                                   style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                                 ),
+                                 const SizedBox(height: 8),
+                                 Text(
+                                   _formatMoney(currentWalletBalance, l10n, settings.hideBalances),
+                                   style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, fontFamily: 'Outfit'),
+                                 ),
+                                 const Spacer(),
+                                 Text('Cash source', style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12)),
+                               ],
+                             ),
+                           ),
+                         );
                       },
                     ),
                   ),
@@ -825,6 +857,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
               ),
+
+              if (_filterWalletId != null)
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  sliver: SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: Wrap(
+                        spacing: 8,
+                        children: [
+                          InputChip(
+                            avatar: const Icon(Icons.account_balance_wallet_outlined, size: 16),
+                            label: Text(
+                              l10n.locale.languageCode == 'ar'
+                                  ? 'تصفية: ${budgetState.wallets.firstWhere((w) => w.id == _filterWalletId, orElse: () => Wallet()..name = "").name}'
+                                  : 'Wallet: ${budgetState.wallets.firstWhere((w) => w.id == _filterWalletId, orElse: () => Wallet()..name = "").name}',
+                            ),
+                            onDeleted: () {
+                              setState(() {
+                                _filterWalletId = null;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
 
               filteredTxs.isEmpty
                   ? SliverFillRemaining(
